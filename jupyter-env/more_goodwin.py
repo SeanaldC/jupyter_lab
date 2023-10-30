@@ -1,7 +1,7 @@
 import numpy as np
 def goodwin(y, t, g, theta, a, s, lam, G, p, damp, b, d, n):
     w, e, x = y
-    dydt = [(theta*(x/G)/(1-e)-g-a)/10, s*(1-w)*p-(n+d+a), lam*(1-x/G)-damp*b]
+    dydt = [(theta*x/(1-e)-g-a)/10, s*(1-w)*p-(n+d+a), lam*(1-x/G)-damp*b]
     return dydt
 
 
@@ -30,5 +30,6 @@ plt.plot(t, sol[:, 1], 'g', label='Employment Rate')
 plt.plot(t, sol[:, 2], 'c', label='Natural Capital')
 plt.legend(loc='best')
 plt.xlabel('t')
+plt.title('Environmental Fallout of Class Conflict')
 plt.grid()
 plt.show()
