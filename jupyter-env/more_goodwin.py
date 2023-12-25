@@ -33,3 +33,4 @@ plt.xlabel('t')
 plt.title('Environmental Fallout of Class Conflict')
 plt.grid()
 plt.show()
+
