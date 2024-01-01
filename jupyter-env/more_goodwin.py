@@ -1,7 +1,7 @@
 import numpy as np
-def goodwin(y, t, g, theta, a, s, lam, G, p, damp, b, d, n):
+def goodwin(y, t, g, theta, a, s, lam, G, p, damp, b, d, n, X):
     w, e, x = y
-    dydt = [(theta*x/(1-e)-g-a)/10, s*(1-w)*p-(n+d+a), lam*(1-x/G)-damp*b]
+    dydt = [(theta*X/(1-e)-g-a)/10, s*(1-w)*p-(n+d+a), lam*(1-X/G)-damp*b]
     return dydt
 
 
@@ -16,13 +16,14 @@ damp=0.5
 b=2
 d=0.1
 n=0.01
+X=0.75
 
 y0 = [0.6,0.8, 1]
 
 t = np.linspace(0, 5, 101)
 
 from scipy.integrate import odeint
-sol = odeint(goodwin, y0, t, args=(g, theta, a, s, lam, G, p, damp, b, d, n))
+sol = odeint(goodwin, y0, t, args=(g, theta, a, s, lam, G, p, damp, b, d, n, X))
 
 import matplotlib.pyplot as plt
 plt.plot(t, sol[:, 0], 'b', label='Wage Share')
