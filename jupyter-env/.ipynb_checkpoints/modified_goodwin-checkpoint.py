@@ -1,36 +1,59 @@
+import numpy as np
+from scipy.integrate import odeint
 import matplotlib.pyplot as plt
-import phaseportrait
-from phaseportrait.streamlines import *
+from phaseportrait import PhasePortrait2D
 
-gam=1
-O=1
-a=1
-s=0.1
-p=2
-d=0.1
+p=8
+g=0.1
 n=0.01
+phi=1
+lam=1
+
+def dF(w, e):
+    return ((1-w)*p-(g+n),-phi+lam/(1-e)-g)
+
+
+
+example = PhasePortrait2D(dF, [0, 1], Polar=False, Title='Goodwin cycle')
+fig, ax = example.plot()
+
+
+# Define the Goodwin model
+def goodwin(y, t, p, g, n, phi, lam):
+    w, e = y
+    dydt = [(1-w)*p-(g+n),
+           -phi+lam*e-g]
+    return dydt
+
+p=1
+g=0.1
+n=0.01
+phi=1
 lam=2
-Gam=100
-damp=0.3
-b=1
 
+# Set initial conditions
+y0 = [0.6, 0.68]  # Initial values of w, e, v
 
-def dF(w,e,x):
-    return -gam+O*x/(1-e)-a, s*(1-w)*p-(a+d+n), lam*(1-x/Gam)-damp*b
+# Set time points
+t = np.linspace(0, 10, 1000)
 
-p1 = phaseportrait.PhasePortrait3D(dF, [0, 3])
-p1.plot()
+# Solve the system of ODEs
+sol = odeint(goodwin, y0, t, args=(p, g, n, phi, lam))
+
+# Plot the results
+plt.plot(t, sol[:, 0], label='Wage Share (w)')
+plt.plot(t, sol[:, 1], label='Employment Rate (e)')
+plt.xlabel('Time')
+plt.ylabel('Shares')
+plt.title('Neo-Marxian Goodwin Cycle')
+plt.legend()
 plt.show()
 
 
-
-#def dF(x,y,z, *, w=1):
- #   return -y, x, -z + w
-
-
-#p2 = phaseportrait.PhasePortrait3D(dF, [-3, 3], MeshDim=8, maxLen=2500, deltat=0.05)
-
-#p2.add_slider('w')
-
-#p2.plot(color='viridis', grid=False)
-#plt.show()
+# Plot the results with wage share on the horizontal axis and employment rate on the vertical axis
+plt.plot(sol[:, 0], sol[:, 1], label='Goodwin Cycle')
+plt.xlabel('Wage Share (w)')
+plt.ylabel('Employment Rate (e)')
+plt.title('Neo-Marxian Goodwin Cycle')
+plt.legend()
+plt.show()
