@@ -1,18 +1,17 @@
 import numpy as np
-def eco_goodwin(y, t, s, n, delta, sig, phi0, phi1, phi2, a0, a1, a2, a3, theta0, theta1, lam, G, d):
-    omega, eta, e, x, k, v, z, b = y
-    dydt = [omega*(phi0+phi1/(1-e)+(phi2-1)*(a0+a1/(1-e)+a2*omega+a3*eta)), eta*(theta0+theta1*eta+((v**(sig/(1-sig)))/(1-sig))*(lam*(1-x/G)-d-(1-omega-eta-delta*z)/(s*k-z))), e*((1-omega-eta-delta*z)/(s*k-z)-n), x*(lam*(1-x/G)-d), k*((1-omega-eta-delta*z)/(s*k-z)), v*(lam*(1-x/G)-d - (1-omega-eta-delta*z)/(s*k-z)), z*((1-omega-eta-delta*z)/(s*k-z)-(1-omega-eta-delta*z)/(s*k-z)), b*(theta0+theta1*eta)]
-    return dydt
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
 
 
 # Initialize parameters
 s=0.8
 n=0.01
 delta=0.01
-sig=0.1
+sig=-100000000
 phi0=-1
 phi1=1
-phi2=1 #Captures worker power
+phi2=2 #Captures worker power
 a0=1
 a1=1
 a2=1
@@ -24,43 +23,78 @@ lam=0.1
 d=1
 rho=1
 
-y0 = [0.3,0.3,0.8,400,100,1,1,1]
+# solve the system dy/dt = f(y, t)
+def f(y, t):
+     wi = y[0]
+     etai = y[1]
+     ei = y[2]
+     xi = y[3]
+     ki = y[4]
+     vi = y[5]
+     zi = y[6]
+     bi = y[7]
+     y_outi = y[8]
+     # the model equations 
+     f0 = wi*(phi0+phi1/(1-ei)+(phi2-1)*(a0+a1/(1-ei)+a2*wi+a3*etai))
+     f1 = etai*(theta0+theta1*etai+((vi**(sig/(1-sig)))/(sig-1))*(lam*(1-xi/G)-d-(1-wi-etai-delta*zi)/(s*ki-zi)))
+     f2 = ei*((1-wi-etai-delta*zi)/(s*ki-zi)-n)
+     f3 = xi*(lam*(1-xi/G)-d)
+     f4 = ki*((1-wi-etai-delta*zi)/(s*ki-zi))
+     f5 = vi*(lam*(1-xi/G)-d - (1-wi-etai-delta*zi)/(s*ki-zi))
+     f6 = zi*((1-wi-etai-delta*zi)/zi-(1-wi-etai-delta*zi)/(s*ki-zi))
+     f7 = bi*(theta0+theta1*etai)
+     f8 = y_outi*((1-wi-etai-delta*zi)/(s*ki-zi))
+     return [f0, f1, f2, f3, f4, f5, f6, f7, f8]
 
-y=(rho*y0[5]**((sig-1)/sig)+b*y0[4]**(sig/(sig-1)))**(sig/(sig-1))
-z=y0[5]/y
-v=y0[4]/y
+# Initial conditions
 
-t = np.linspace(0, 100, 101)
+w0 = 0.3
+eta0 = 0.3
+e0 = 0.8
+x0 = 400
+k0 = 100
+b0=1
+y_init=(rho*k0**((sig-1)/sig)+b0*x0**(sig/(sig-1)))**(sig/(sig-1))
+z0=k0/y_init
+v0=x0/y_init
 
-from scipy.integrate import odeint
-sol = odeint(eco_goodwin, y0, t, args=(s, n, delta, sig, phi0, phi1, phi2, a0, a1, a2, a3, theta0, theta1, lam, G, d), rtol=1e-6, atol=1e-8)
 
+y0 = [w0,eta0,e0,x0,k0,v0,z0,b0,y_init]
 
-import matplotlib.pyplot as plt
-plt.plot(t, sol[:, 0], 'b', label='Wage Share')
-plt.plot(t, sol[:, 1], 'g', label='Nature Share')
-plt.plot(t, sol[:, 2], 'c', label='Employment Rate')
+t = np.linspace(0, 100, 101) # Fails after 2.3
+
+# Solve ODEs
+
+soln = odeint(f, y0, t, atol=1e-10, rtol=1e-10)
+w = soln[:, 0]
+eta = soln[:, 1]
+e = soln[:, 2]
+x = soln[:, 3]
+k = soln[:, 4]
+v = soln[:, 5]
+z = soln[:, 6]
+b = soln[:, 7]
+y_out = soln[:, 8]
+
+# plot results
+plt.figure()
+plt.plot(t, w, label='Wage Share')
+plt.plot(t, eta, label='Nature Share')
+plt.plot(t, e, label='Employment Rate')
 plt.legend(loc='best')
-plt.xlabel('t')
-plt.title('Environmental Fallout of Class Conflict')
-plt.grid()
-plt.show()
+plt.xlabel('Time')
+plt.ylabel('Percent')
+plt.title('Eco-Goodwin Cycles')
+plt.savefig('goodwin_model_plot.png')  # Save the plot as an image
 
 
+# Compute Jacobian matrix at the final time point
+J = np.zeros((len(y0), len(y0)))
+for i in range(len(y0)):
+    y_perturbed = y0.copy()
+    y_perturbed[i] += 1e-6  # Perturb the ith component
+    J[:, i] = (f(y_perturbed, t[-1])[0] - f(y0, t[-1])[0]) / 1e-6
 
-plt.plot(t, sol[:, 3], 'g', label='Natural Capital Growth')
-plt.plot(t, sol[:, 4], 'b', label='Capital Accumulation')
-plt.legend(loc='best')
-plt.xlabel('t')
-plt.title('Capitals')
-plt.grid()
-plt.show()
-
-plt.plot(t, sol[:, 7], 'b', label='Nature-biased technical change')
-plt.legend(loc='best')
-plt.xlabel('t')
-plt.title('Tech')
-plt.grid()
-plt.show()
-
-
+# Compute and print eigenvalues
+eigenvalues = np.linalg.eigvals(J)
+print("Eigenvalues of the Jacobian at the final time point:", eigenvalues)
