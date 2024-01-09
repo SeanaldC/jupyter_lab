@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy as sp
 from scipy.integrate import odeint
+from scipy.integrate import solve_ivp
 
 
 
@@ -23,8 +25,8 @@ lam=0.1
 d=1
 rho=1
 
-# solve the system dy/dt = f(y, t)
-def f(y, t):
+# solve the system dy/dt = f(t, y)
+def f(t, y):
      wi = y[0]
      etai = y[1]
      ei = y[2]
@@ -59,13 +61,13 @@ z0=k0/y_init
 v0=x0/y_init
 
 
-y0 = [w0,eta0,e0,x0,k0,v0,z0,b0,y_init]
+f_init = [w0,eta0,e0,x0,k0,v0,z0,b0,y_init]
 
 t = np.linspace(0, 100, 101) # Fails after 2.3
 
 # Solve ODEs
 
-soln = odeint(f, y0, t, atol=1e-10, rtol=1e-10)
+soln = odeint(f, y0=f_init, t=t, tfirst=True, atol=1e-10, rtol=1e-10)
 w = soln[:, 0]
 eta = soln[:, 1]
 e = soln[:, 2]
@@ -75,6 +77,9 @@ v = soln[:, 5]
 z = soln[:, 6]
 b = soln[:, 7]
 y_out = soln[:, 8]
+
+soln2 = solve_ivp(f, t_span=(0,max(t)), y0=[f_init], t_eval=t)
+
 
 # plot results
 plt.figure()
@@ -87,14 +92,3 @@ plt.ylabel('Percent')
 plt.title('Eco-Goodwin Cycles')
 plt.savefig('goodwin_model_plot.png')  # Save the plot as an image
 
-
-# Compute Jacobian matrix at the final time point
-J = np.zeros((len(y0), len(y0)))
-for i in range(len(y0)):
-    y_perturbed = y0.copy()
-    y_perturbed[i] += 1e-6  # Perturb the ith component
-    J[:, i] = (f(y_perturbed, t[-1])[0] - f(y0, t[-1])[0]) / 1e-6
-
-# Compute and print eigenvalues
-eigenvalues = np.linalg.eigvals(J)
-print("Eigenvalues of the Jacobian at the final time point:", eigenvalues)
