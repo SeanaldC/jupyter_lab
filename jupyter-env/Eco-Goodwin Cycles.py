@@ -6,85 +6,53 @@ from scipy.integrate import solve_ivp
 
 
 
-# Initialize parameters
-s=0.8
-n=0.01
-delta=0.01
-sig=-100000000
-phi0=-1
-phi1=1
-phi2=2 #Captures worker power
-a0=1
-a1=1
-a2=1
-a3=1
-theta0=0
-theta1=1
-G=100
-lam=0.1
-d=1
-rho=1
+# Initialize paramters
+theta = 1
+gamma = 0.8
+l = 0.01
+tau = 1 #maybe?
+s = 1
+a = 0.5
+Gamma = 100
+lam = 0.02
+
 
 # solve the system dy/dt = f(t, y)
 def f(t, y):
      wi = y[0]
-     etai = y[1]
+     Xi = y[1]
      ei = y[2]
-     xi = y[3]
-     ki = y[4]
-     vi = y[5]
-     zi = y[6]
-     bi = y[7]
-     y_outi = y[8]
      # the model equations 
-     f0 = wi*(phi0+phi1/(1-ei)+(phi2-1)*(a0+a1/(1-ei)+a2*wi+a3*etai))
-     f1 = etai*(theta0+theta1*etai+((vi**(sig/(1-sig)))/(sig-1))*(lam*(1-xi/G)-d-(1-wi-etai-delta*zi)/(s*ki-zi)))
-     f2 = ei*((1-wi-etai-delta*zi)/(s*ki-zi)-n)
-     f3 = xi*(lam*(1-xi/G)-d)
-     f4 = ki*((1-wi-etai-delta*zi)/(s*ki-zi))
-     f5 = vi*(lam*(1-xi/G)-d - (1-wi-etai-delta*zi)/(s*ki-zi))
-     f6 = zi*((1-wi-etai-delta*zi)/zi-(1-wi-etai-delta*zi)/(s*ki-zi))
-     f7 = bi*(theta0+theta1*etai)
-     f8 = y_outi*((1-wi-etai-delta*zi)/(s*ki-zi))
-     return [f0, f1, f2, f3, f4, f5, f6, f7, f8]
+     f0 = (theta*ei-gamma)
+     f1 = ((lam*(1-Xi/Gamma) - (1-tau)*Xi**(a-1)) - (s*Xi**(a)*(1 - wi - tau*Xi**(1-a))))
+     f2 = ei*(a*(f1) + ((s*Xi**(a)*(1 - wi - tau*Xi**(1-a)))) - l)
+     return [f0, f1, f2]
 
 # Initial conditions
-
-w0 = 0.3
-eta0 = 0.3
+w0 = 0.6
+N0 = 4
+K0 = 1
 e0 = 0.8
-x0 = 400
-k0 = 100
-b0=1
-y_init=(rho*k0**((sig-1)/sig)+b0*x0**(sig/(sig-1)))**(sig/(sig-1))
-z0=k0/y_init
-v0=x0/y_init
+X0 = N0/K0
 
 
-f_init = [w0,eta0,e0,x0,k0,v0,z0,b0,y_init]
+f_init = [w0, X0, e0]
 
-t = np.linspace(0, 100, 101) # Fails after 2.3
+t = np.linspace(0, 100, 101) 
 
 # Solve ODEs
 
-soln = odeint(f, y0=f_init, t=t, tfirst=True, atol=1e-10, rtol=1e-10)
+soln = odeint(f, y0=f_init, t=t, tfirst=True)
+
+
+soln2 = solve_ivp(f, t_span=(0,max(t)), y0=f_init, t_eval=t, rtol = 1e-6, atol = 1e-9)
 w = soln[:, 0]
-eta = soln[:, 1]
-e = soln[:, 2]
-x = soln[:, 3]
-k = soln[:, 4]
-v = soln[:, 5]
-z = soln[:, 6]
-b = soln[:, 7]
-y_out = soln[:, 8]
-
-soln2 = solve_ivp(f, t_span=(0,max(t)), y0=[f_init], t_eval=t)
-
+X = soln[:, 1]
+e = soln[:, 2] 
 
 # plot results
 plt.figure()
 plt.plot(t, w, label='Wage Share')
-plt.plot(t, eta, label='Nature Share')
 plt.plot(t, e, label='Employment Rate')
 plt.legend(loc='best')
 plt.xlabel('Time')
